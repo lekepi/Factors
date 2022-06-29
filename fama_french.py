@@ -49,7 +49,6 @@ def fama_french_reg(my_type):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
     fama_french_reg('US_3F')  # US Market, 3 Factors
     fama_french_reg('Dev_3F')  # Developed country, 3 Factors
     fama_french_reg('Dev_5F')  # Developed country, 3 Factors
