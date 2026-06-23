@@ -30,6 +30,10 @@ def calc_normalize(my_serie, factor):
 
 
 def download_factor_market_data(my_date):
+
+    session.query(FactorMarketData).filter(FactorMarketData.entry_date == my_date).delete()
+    session.commit()
+
     indexes = ['SPX', 'SXXP']
     factors = session.query(Factor).all()
 
@@ -46,7 +50,6 @@ def download_factor_market_data(my_date):
             df = pd.read_excel(file_path, sheet_name=sheet_name)
             df['norm'] = calc_normalize(df['Value'], factor)
 
-            columns = ['factor_id', 'index', 'quintile', 'value']
             for i in range(1, 6):
                 quintile_value = df.loc[df['Quintile'] == i, 'norm'].mean()  # TODO calculate
                 factor_quintile.append([factor.id, index, i, quintile_value])
@@ -69,28 +72,40 @@ def download_factor_market_data(my_date):
                 factor_md_list.append(new_factor_md)
             print(sheet_name)
 
-    df = pd.read_excel(file_path, sheet_name='FTW Security', usecols="J:N")
-    df = df.dropna()
+    df_missing = pd.read_excel(file_path, sheet_name='FTW Security', usecols="J:O")
+    df_missing = df_missing.dropna()
 
-    session.query(FactorMarketData).filter(FactorMarketData.entry_date == my_date).delete()
-    session.commit()
+    df_quintile = pd.DataFrame(factor_quintile, columns=['factor_id', 'index', 'quintile', 'value'])
 
-    for index, row in df.iterrows():
+    for index, row in df_missing.iterrows():
+
+        factor_id = row['Factor_id']
+        my_index = row['Index']
+        quintile = row['Quintile']
+        linear_value = row['Coeff']
+        ticker = row['Ticker']
+
+        norm_value = df_quintile[(df_quintile['index'] == my_index) &
+                                 (df_quintile['quintile'] == quintile) &
+                                 (df_quintile['factor_id'] == factor_id)]['value'].values[0]
 
         new_factor_md = FactorMarketData(entry_date=my_date,
-                                         ticker=row['Ticker'],
-                                         factor_id=row['Factor_id'],
-                                         linear_value=row['Coeff'],
-                                         index=row['Index'],
-                                         quintile=row['Quintile'])
+                                         ticker=ticker,
+                                         factor_id=factor_id,
+                                         linear_value=linear_value,
+                                         norm_value=norm_value,
+                                         index=my_index,
+                                         quintile=quintile)
         factor_md_list.append(new_factor_md)
-
 
     session.add_all(factor_md_list)
     session.commit()
 
+    print('Done')
+
 
 if __name__ == "__main__":
     my_date = date.today()
-    my_date = date(2022, 6, 24)
+    # my_date = date(2022, 6, 24)
+    my_date = date(2022, 7, 15)
     download_factor_market_data(my_date)

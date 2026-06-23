@@ -530,6 +530,7 @@ class FactorPosition(Base):
     quintile = Column(Integer)
     parent_fund_id = Column(ForeignKey("parent_fund.id"))
     parent_fund = relationship("ParentFund")
+    index = Column(String(45))
 
 
 def copy_trade(trade):

@@ -2,13 +2,12 @@ from models import session, FactorMarketData, FactorPosition, Position, Product
 from datetime import date
 
 
-def download_factor_position():
-    today = date.today()
-    session.query(FactorPosition).filter(FactorPosition.entry_date == today).delete()
+def download_factor_position(my_date):
+    session.query(FactorPosition).filter(FactorPosition.entry_date == my_date).delete()
     session.commit()
 
-    factor_md_list = session.query(FactorMarketData).filter(FactorMarketData.entry_date == today).all()
-    position_list = session.query(Position).filter(Position.entry_date == today).all()
+    factor_md_list = session.query(FactorMarketData).filter(FactorMarketData.entry_date == my_date).all()
+    position_list = session.query(Position).filter(Position.entry_date == my_date).all()
 
     factor_position_list = []
 
@@ -20,15 +19,24 @@ def download_factor_position():
 
         factor_md_matches = [f for f in factor_md_list if f.ticker == position.product.ticker]
         for factor_md in factor_md_matches:
-            coeff = factor_md.coeff
+            raw_value = factor_md.raw_value
+            linear_value = factor_md.linear_value
+            norm_value = factor_md.norm_value
+            quintile = factor_md.quintile
+            index = factor_md.index
+
             factor_id = factor_md.factor_id
 
-            new_factor_position = FactorPosition(entry_date=today,
+            new_factor_position = FactorPosition(entry_date=my_date,
                                                  product_id=product_id,
                                                  factor_id=factor_id,
                                                  notional_usd=notional_usd,
-                                                 coeff=coeff,
-                                                 parent_fund_id=parent_fund_id)
+                                                 parent_fund_id=parent_fund_id,
+                                                 raw_value=raw_value,
+                                                 linear_value=linear_value,
+                                                 norm_value=norm_value,
+                                                 quintile=quintile,
+                                                 index=index)
 
             factor_position_list.append(new_factor_position)
 
@@ -38,4 +46,7 @@ def download_factor_position():
 
 
 if __name__ == "__main__":
-    download_factor_position()
+    my_date1 = date(2022, 6, 24)
+    my_date2 = date(2022, 7, 15)
+    download_factor_position(my_date1)
+    download_factor_position(my_date2)
